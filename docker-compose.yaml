@@ -1,0 +1,38 @@
+services:
+  logstash:
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    build: ./logstash
+    container_name: logstash
+    environment:
+      - DD_API_KEY
+      - DB_NAME
+      - TABLE_NAME
+      - USER_NAME
+      - USER_PASSWORD
+
+  sqlserver:
+    build: ./mssql
+    container_name: sqlserver
+    environment:
+      - ACCEPT_EULA
+      - SA_PASSWORD
+      - DB_NAME
+      - LOGIN_NAME
+      - USER_NAME
+      - USER_PASSWORD
+      - TABLE_NAME
+    ports:
+      - "1433"
+    healthcheck:
+      test: |
+        /opt/mssql-tools/bin/sqlcmd \
+          -S localhost \
+          -U sa \
+          -P $$SA_PASSWORD \
+          -d $$DB_NAME \
+          -Q "SELECT COUNT(*) FROM $$TABLE_NAME" || exit 1
+      interval: 20s
+      timeout: 30s
+      retries: 3
